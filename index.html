@@ -723,31 +723,10 @@
 <!-- ── IMAGE PRELOAD + SCENE CONTROLLER ─────────────── -->
 <script src="images.js"></script>
 <script>
-/*
-  SCENE CONTROLLER
-  ─────────────────
-  Single source of truth: window.sceneState
-  {
-    phase:     'start' | 'ct' | 'l' | 'cl'
-    season:    'map' | 'interior' | 'spring' | 'summer' | 'fall' | 'winter'
-    rain:      boolean
-    hasCow:    boolean
-    hasRabbit: boolean
-    hasAle:    boolean   — leaseholder has brewed/sold ale this season
-    hasGrain:  boolean   — leaseholder has stored grain
-    isDead:    boolean
-  }
-
-  Image key resolution order (most specific wins):
-    1. dead → grave
-    2. interior → start_interior  (always start_ regardless of phase)
-    3. map → start_map
-    4. phase + season + livestock/ale/grain variants
-    5. fallback: start_map
-*/
 (function () {
   'use strict';
 
+  // Master definition of keys to files
   const IMAGE_DEFS = {
     grave:                { file: 'grave.gif',                  id: 'scene-grave' },
     start_map:            { file: 'start_map.gif',              id: 'scene-start-map' },
@@ -780,8 +759,6 @@
     cl_winter_grain:      { file: 'ct_winter_grain.gif',        id: 'scene-cl-winter-grain' },
   };
 
-  // REMOVED: The old loop that set .src for everything at once.
-
   window.sceneState = {
     phase: 'start', season: 'map', rain: true, hasCow: false, hasRabbit: false, 
     hasAle: false, hasGrain: false, isDead: false,
@@ -791,6 +768,7 @@
     if (s.isDead) return 'grave';
     if (s.season === 'map') return 'start_map';
     if (s.season === 'interior') return 'start_interior';
+    
     const { phase, season, hasCow, hasRabbit, hasAle, hasGrain } = s;
 
     if (phase === 'start') {
@@ -830,8 +808,6 @@
         if (hasGrain) return 'cl_winter_grain';
         return 'cl_winter';
       }
-      if (season === 'fall') return 'ct_fall';
-      if (season === 'summer') return 'ct_summer';
       return 'ct_spring';
     }
     return 'start_map';
@@ -846,28 +822,28 @@
     const oldKey = currentKey;
 
     if (newEl) {
-      // 1. Load the new image source just-in-time
+      // 1. Force the browser to start loading the GIF only when needed
       if (!newEl.src || !newEl.src.includes(def.file)) {
         newEl.src = def.file;
       }
       
-      // 2. Crossfade: Add active class to new, remove from all others
+      // 2. Clear active state from others and set new active
       document.querySelectorAll('.scene-img').forEach(el => el.classList.remove('active'));
       newEl.classList.add('active');
     }
 
     currentKey = key;
 
-    // 3. Clean up memory: Remove 'src' from the old image AFTER the transition (1.4s)
-    if (oldKey) {
+    // 3. Clear memory: Remove the 'src' from the hidden GIF 1.5s after the fade finishes
+    if (oldKey && oldKey !== currentKey) {
       setTimeout(() => {
         const oldDef = IMAGE_DEFS[oldKey];
         const oldEl = document.getElementById(oldDef.id);
-        // Only clear if it's still not the current image
-        if (oldEl && oldKey !== currentKey) {
+        if (oldEl && !oldEl.classList.contains('active')) {
+          oldEl.src = ""; // Stop the animation and free memory
           oldEl.removeAttribute('src'); 
         }
-      }, 1500); 
+      }, 2000); 
     }
 
     const overlay = document.getElementById('scene-season-overlay');
@@ -882,115 +858,9 @@
     showSceneByKey(key);
   };
 
-  showSceneByKey('start_map');
-})();
-
-  // ── KEY RESOLVER ──────────────────────────────────
-  // Returns the image key to display given current state.
-  // 
-  // Start-phase scene flow:
-  //   map → (some days later) → start_fall_rain
-  //   → first market choices → start_winter / _cow / _rabbit
-  //   → customary tenant upgrade → start_summer (not rainy)
-  //   Never shows spring or non-rainy scenes in start phase (until CT)
-  function resolveImageKey(s) {
-    // 1. death always wins
-    if (s.isDead) return 'grave';
-
-    // 2. special non-season states
-    if (s.season === 'map')      return 'start_map';
-    if (s.season === 'interior') return 'start_interior';
-
-    const { phase, season, rain, hasCow, hasRabbit, hasAle, hasGrain } = s;
-
-    // 3. start phase — always uses start_* images
-    //    Default non-winter scene is summer (clean) once CT upgrade fires,
-    //    but during start phase everything before winter is fall_rain.
-    if (phase === 'start') {
-      if (season === 'winter') {
-        if (hasCow)    return 'start_winter_cow';
-        if (hasRabbit) return 'start_winter_rabbit';
-        return 'start_winter';
-      }
-      // In start phase: fall = rainy always (that's the mood)
-      // summer only appears briefly right before CT upgrade triggers
-      if (season === 'summer') return 'start_summer';
-      // Everything else (spring, fall, unrecognised) → fall_rain
-      return 'start_fall_rain';
-    }
-
-    // 4. ct phase (Customary Tenant)
-    if (phase === 'ct') {
-      if (season === 'winter') return 'start_winter'; // ct has no winter image; use start
-      if (season === 'fall')   return 'ct_fall';
-      if (season === 'summer') return 'ct_summer';
-      return 'ct_spring';
-    }
-
-    // 5. l phase (Leaseholder)
-    if (phase === 'l') {
-      if (season === 'winter') {
-        if (hasAle && hasGrain) return 'l_winter_ale_grain';
-        if (hasAle)             return 'l_winter_ale';
-        if (hasGrain)           return 'l_winter_grain';
-        if (hasCow)             return 'l_winter_cow';
-        return 'l_winter';
-      }
-      if (season === 'fall')   return hasAle ? 'l_fall_ale' : 'l_fall';
-      if (season === 'summer') {
-        if (hasAle) return 'l_summer_ale';
-        if (hasCow) return 'l_summer_cow';
-        return 'l_summer';
-      }
-      return 'l_spring';
-    }
-
-    // 6. cl phase (Customary-leaseholder transition)
-    if (phase === 'cl') {
-      if (season === 'winter') {
-        if (hasCow)   return 'cl_winter_cow';
-        if (hasGrain) return 'cl_winter_grain';
-        return 'cl_winter';
-      }
-      if (season === 'fall')   return 'ct_fall';
-      if (season === 'summer') return 'ct_summer';
-      return 'ct_spring';
-    }
-
-    // ultimate fallback
-    return 'start_map';
-  }
-
-  // ── SHOW IMAGE ────────────────────────────────────
-  let currentKey = null;
-
-  function showSceneByKey(key) {
-    if (key === currentKey) return; // no-op if already showing
-    const def = IMAGE_DEFS[key] || IMAGE_DEFS['start_map'];
-    document.querySelectorAll('.scene-img').forEach(el => el.classList.remove('active'));
-    const el = document.getElementById(def.id);
-    if (el) el.classList.add('active');
-    currentKey = key;
-
-    // update season overlay text
-    const overlay = document.getElementById('scene-season-overlay');
-    if (overlay) {
-      const seasonLabel = document.getElementById('season-label');
-      overlay.textContent = seasonLabel ? seasonLabel.textContent : '';
-    }
-  }
-
-  // ── PUBLIC UPDATE ─────────────────────────────────
-  window.updateScene = function () {
-    const key = resolveImageKey(window.sceneState);
-    showSceneByKey(key);
-  };
-
-  // Initial render
   showSceneByKey('start_map');
 })();
 </script>
-
 <!-- ── PANEL TAB CONTROLLER ─────────────────────── -->
 <script>
 document.querySelectorAll('.atmos-tab').forEach(btn => {
