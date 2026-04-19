@@ -215,6 +215,7 @@
     object-fit: cover;
     object-position: center center;
     opacity: 0;
+    background: var(--bg); /* Prevents flickering during source changes */
     transition: opacity 1.4s ease;
     z-index: 1;
   }
