@@ -15,18 +15,18 @@ const SCENE_IMAGES = {
   start_fall:           "start_fall.gif",
   start_fall_rain:      "start_fall_rain.gif",
   start_winter:         "start_winter.gif",
-  start_winter_rabbit:  "start_winter_rabbit.gof",
+  start_winter_rabbit:  "start_winter_rabbit.gif",
   start_winter_cow:     "start_winter_cow.gif",
 
   // ── ct phase (Customary Tenant) ──────────────────
   ct_spring:            "ct_spring.gif",
-  ct_summer:            "ct_summer.gif",   // note: file is named Ct_Cummer.webp
+  ct_summer:            "ct_summer.gif",
   ct_fall:              "ct_fall.gif",
 
   // ── l phase (Leaseholder) ────────────────────────
   l_spring:             "l_spring.gif",
   l_summer:             "l_summer.gif",
-  l_summer_cow:         "l_summer_cow.gifp",
+  l_summer_cow:         "l_summer_cow.gif",
   l_summer_ale:         "l_summer_ale.gif",
   l_fall:               "l_fall.gif",
   l_fall_ale:           "l_fall_ale.gif",
@@ -36,7 +36,7 @@ const SCENE_IMAGES = {
   l_winter_ale:         "l_winter_ale.gif",
   l_winter_ale_grain:   "l_winter_ale_grain.gif",
 
-  // ── cl phase → now using CT_ filenames ───────────
+  // ── cl phase (Hybrids) ───────────────────────────
   cl_winter:            "ct_winter.gif",
   cl_winter_cow:        "ct_winter_cow.gif",
   cl_winter_grain:      "ct_winter_grain.gif",
