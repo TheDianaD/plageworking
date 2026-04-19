@@ -747,15 +747,10 @@
 (function () {
   'use strict';
 
-  // ── IMAGE MAP ─────────────────────────────────────
-  // Maps every image key to its filename and element id.
-  // Add new images here; scene logic below stays clean.
   const IMAGE_DEFS = {
-    // special
     grave:                { file: 'grave.gif',                  id: 'scene-grave' },
     start_map:            { file: 'start_map.gif',              id: 'scene-start-map' },
     start_interior:       { file: 'start_interior.gif',         id: 'scene-start-interior' },
-    // start exterior
     start_spring:         { file: 'start_spring.gif',           id: 'scene-start-spring' },
     start_spring_rain:    { file: 'start_spring_rain.gif',      id: 'scene-start-spring-rain' },
     start_summer:         { file: 'start_summer.gif',           id: 'scene-start-summer' },
@@ -765,11 +760,9 @@
     start_winter:         { file: 'start_winter.gif',           id: 'scene-start-winter' },
     start_winter_rabbit:  { file: 'start_winter_rabbit.gif',    id: 'scene-start-winter-rabbit' },
     start_winter_cow:     { file: 'start_winter_cow.gif',       id: 'scene-start-winter-cow' },
-    // ct_ set
     ct_spring:            { file: 'ct_spring.gif',              id: 'scene-ct-spring' },
     ct_summer:            { file: 'ct_summer.gif',              id: 'scene-ct-summer' },
     ct_fall:              { file: 'ct_fall.gif',                id: 'scene-ct-fall' },
-    // l_ set
     l_spring:             { file: 'l_spring.gif',               id: 'scene-l-spring' },
     l_summer:             { file: 'l_summer.gif',               id: 'scene-l-summer' },
     l_summer_cow:         { file: 'l_summer_cow.gif',           id: 'scene-l-summer-cow' },
@@ -781,29 +774,115 @@
     l_winter_grain:       { file: 'l_winter_grain.gif',         id: 'scene-l-winter-grain' },
     l_winter_ale:         { file: 'l_winter_ale.gif',           id: 'scene-l-winter-ale' },
     l_winter_ale_grain:   { file: 'l_winter_ale_grain.gif',     id: 'scene-l-winter-ale-grain' },
-    // cl_ set
     cl_winter:            { file: 'ct_winter.gif',              id: 'scene-cl-winter' },
     cl_winter_cow:        { file: 'ct_winter_cow.gif',          id: 'scene-cl-winter-cow' },
     cl_winter_grain:      { file: 'ct_winter_grain.gif',        id: 'scene-cl-winter-grain' },
   };
 
-  // Wire up src for every img element
-  Object.values(IMAGE_DEFS).forEach(({ file, id }) => {
-    const el = document.getElementById(id);
-    if (el) el.src = file;
-  });
+  // REMOVED: The old loop that set .src for everything at once.
 
-  // ── STATE ─────────────────────────────────────────
   window.sceneState = {
-    phase:     'start',   // 'start' | 'ct' | 'l' | 'cl'
-    season:    'map',     // 'map' | 'interior' | 'spring' | 'summer' | 'fall' | 'winter'
-    rain:      true,      // early game is always raining
-    hasCow:    false,
-    hasRabbit: false,
-    hasAle:    false,
-    hasGrain:  false,
-    isDead:    false,
+    phase: 'start', season: 'map', rain: true, hasCow: false, hasRabbit: false, 
+    hasAle: false, hasGrain: false, isDead: false,
   };
+
+  function resolveImageKey(s) {
+    if (s.isDead) return 'grave';
+    if (s.season === 'map') return 'start_map';
+    if (s.season === 'interior') return 'start_interior';
+    const { phase, season, hasCow, hasRabbit, hasAle, hasGrain } = s;
+
+    if (phase === 'start') {
+      if (season === 'winter') {
+        if (hasCow) return 'start_winter_cow';
+        if (hasRabbit) return 'start_winter_rabbit';
+        return 'start_winter';
+      }
+      if (season === 'summer') return 'start_summer';
+      return 'start_fall_rain';
+    }
+    if (phase === 'ct') {
+      if (season === 'winter') return 'start_winter';
+      if (season === 'fall') return 'ct_fall';
+      if (season === 'summer') return 'ct_summer';
+      return 'ct_spring';
+    }
+    if (phase === 'l') {
+      if (season === 'winter') {
+        if (hasAle && hasGrain) return 'l_winter_ale_grain';
+        if (hasAle) return 'l_winter_ale';
+        if (hasGrain) return 'l_winter_grain';
+        if (hasCow) return 'l_winter_cow';
+        return 'l_winter';
+      }
+      if (season === 'fall') return hasAle ? 'l_fall_ale' : 'l_fall';
+      if (season === 'summer') {
+        if (hasAle) return 'l_summer_ale';
+        if (hasCow) return 'l_summer_cow';
+        return 'l_summer';
+      }
+      return 'l_spring';
+    }
+    if (phase === 'cl') {
+      if (season === 'winter') {
+        if (hasCow) return 'cl_winter_cow';
+        if (hasGrain) return 'cl_winter_grain';
+        return 'cl_winter';
+      }
+      if (season === 'fall') return 'ct_fall';
+      if (season === 'summer') return 'ct_summer';
+      return 'ct_spring';
+    }
+    return 'start_map';
+  }
+
+  let currentKey = null;
+
+  function showSceneByKey(key) {
+    if (key === currentKey) return;
+    const def = IMAGE_DEFS[key] || IMAGE_DEFS['start_map'];
+    const newEl = document.getElementById(def.id);
+    const oldKey = currentKey;
+
+    if (newEl) {
+      // 1. Load the new image source just-in-time
+      if (!newEl.src || !newEl.src.includes(def.file)) {
+        newEl.src = def.file;
+      }
+      
+      // 2. Crossfade: Add active class to new, remove from all others
+      document.querySelectorAll('.scene-img').forEach(el => el.classList.remove('active'));
+      newEl.classList.add('active');
+    }
+
+    currentKey = key;
+
+    // 3. Clean up memory: Remove 'src' from the old image AFTER the transition (1.4s)
+    if (oldKey) {
+      setTimeout(() => {
+        const oldDef = IMAGE_DEFS[oldKey];
+        const oldEl = document.getElementById(oldDef.id);
+        // Only clear if it's still not the current image
+        if (oldEl && oldKey !== currentKey) {
+          oldEl.removeAttribute('src'); 
+        }
+      }, 1500); 
+    }
+
+    const overlay = document.getElementById('scene-season-overlay');
+    if (overlay) {
+      const seasonLabel = document.getElementById('season-label');
+      overlay.textContent = seasonLabel ? seasonLabel.textContent : '';
+    }
+  }
+
+  window.updateScene = function () {
+    const key = resolveImageKey(window.sceneState);
+    showSceneByKey(key);
+  };
+
+  showSceneByKey('start_map');
+})();
 
   // ── KEY RESOLVER ──────────────────────────────────
   // Returns the image key to display given current state.
