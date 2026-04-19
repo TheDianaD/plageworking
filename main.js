@@ -309,18 +309,14 @@
     function applySceneTag(val) {
         if (!window.sceneState) return;
         var v = val.trim().toLowerCase();
-        var changed = false;
-
-        if (v === 'map')      { window.sceneState.season = 'map';      changed = true; }
-        else if (v === 'interior') { window.sceneState.season = 'interior'; changed = true; }
-        else if (v === 'spring')   { window.sceneState.season = 'spring';   changed = true; }
-        else if (v === 'summer')   { window.sceneState.season = 'summer';   changed = true; }
-        else if (v === 'fall' || v === 'autumn') {
-            window.sceneState.season = 'fall'; changed = true;
-        }
-        else if (v === 'winter') { window.sceneState.season = 'winter'; changed = true; }
-
-        if (changed && window.updateScene) window.updateScene();
+        // Just update the data, don't trigger the render yet
+        if (v === 'map')      { window.sceneState.season = 'map'; }
+        else if (v === 'interior') { window.sceneState.season = 'interior'; }
+        else if (v === 'spring')   { window.sceneState.season = 'spring'; }
+        else if (v === 'summer')   { window.sceneState.season = 'summer'; }
+        else if (v === 'fall' || v === 'autumn') { window.sceneState.season = 'fall'; }
+        else if (v === 'winter') { window.sceneState.season = 'winter'; }
+        // REMOVED: window.updateScene() call from here
     }
 
     function applyPhaseTag(val) {
@@ -328,7 +324,7 @@
         var v = val.trim().toLowerCase();
         if (v === 'start' || v === 'ct' || v === 'l' || v === 'cl') {
             window.sceneState.phase = v;
-            if (window.updateScene) window.updateScene();
+            // REMOVED: window.updateScene() call from here
         }
     }
 
