@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Can You Survive the World the Plague Left Behind?</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Crimson+Pro:wght@400;600&family=EB+Garamond:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:          #050914;
+    --bg-text:     #07101b;
+    --text:        #e8edf8;
+    --text-dim:    rgba(232,237,248,0.65);
+    --divider:     rgba(255,255,255,0.09);
+    --gold:        #d4aa4e;
+    --gold-dim:    rgba(212,170,78,0.35);
+    --hud-bg:      linear-gradient(180deg, rgba(37,61,111,0.22) 0%, rgba(10,18,38,0.97) 38%, rgba(3,6,13,1) 100%);
+    --blue-top:    #233b69;
+    --blue-mid:    #111f3d;
+    --blue-deep:   #050d1b;
+    --hud-border:  rgba(255,255,255,0.09);
+    --font-display:'Cormorant Garamond', serif;
+    --font-body:   'EB Garamond', serif;
+    --font-ui:     'Crimson Pro', serif;
+    --hud-h:       220px;
+    --stats-h:     52px;
+    --split:       52%;
+  }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    background: linear-gradient(180deg, #0c1630 0%, #07111f 52%, #04070d 100%);
+  }
+  body { font-family: var(--font-body); color: var(--text); }
+
+  /* ── ROOT LAYOUT ─────────────────────────────────────
+     top-bar | stage | stats-strip | choices
+  ──────────────────────────────────────────────────── */
+  #game-wrapper {
+    display: grid;
+    grid-template-rows: auto 1fr var(--stats-h) calc(var(--hud-h) - var(--stats-h));
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+  }
+
+  /* ── THIN TOP BAR ────────────────────────────────── */
+  .top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.5rem;
+    height: 44px;
+    background: rgba(5,9,20,0.97);
+    border-bottom: 1px solid var(--divider);
+    flex-shrink: 0;
+    z-index: 20;
+  }
+  .top-bar-title {
+    font-family: var(--font-display);
+    font-size: clamp(0.85rem, 1.2vw, 1.05rem);
+    font-weight: 700;
+    color: rgba(232,237,248,0.72);
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 60%;
+  }
+  .top-bar-byline {
+    font-family: var(--font-ui);
+    font-size: 0.66rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(232,237,248,0.28);
+    white-space: nowrap;
+  }
+  .top-bar-controls { display: flex; gap: 0; flex-shrink: 0; }
+  .ctrl-btn {
+    padding: 0.4rem 0.9rem;
+    font-family: var(--font-ui);
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(232,237,248,0.38);
+    background: none;
+    border: none;
+    border-left: 1px solid rgba(255,255,255,0.05);
+    cursor: pointer;
+    transition: color 0.15s, background 0.15s;
+    font-weight: 600;
+  }
+  .ctrl-btn:first-child { border-left: none; }
+  .ctrl-btn:hover { color: rgba(232,237,248,0.85); background: rgba(255,255,255,0.04); }
+  .ctrl-btn:disabled { color: rgba(255,255,255,0.12); cursor: not-allowed; }
+
+  /* ── GAME STAGE ──────────────────────────────────── */
+  .game-stage {
+    display: grid;
+    grid-template-columns: var(--split) 1fr;
+    overflow: hidden;
+    position: relative;
+    background: linear-gradient(180deg, rgba(78,106,154,0.12) 0%, rgba(10,18,35,0.97) 28%, rgba(4,7,13,1) 100%);
+  }
+  .game-stage::after {
+    content: '';
+    position: absolute;
+    left: var(--split);
+    top: 0; bottom: 0;
+    width: 1px;
+    background: linear-gradient(to bottom, transparent 0%, var(--divider) 12%, var(--divider) 88%, transparent 100%);
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  /* ── LEFT: TEXT COLUMN ───────────────────────────── */
+  .outerContainer {
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: 100%;
+    background: linear-gradient(180deg, rgba(12,21,40,0.98) 0%, #07101d 22%, #04070d 100%);
+    padding: 2rem 2.5rem 2rem 2.8rem;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.08) transparent;
+  }
+  .outerContainer::-webkit-scrollbar { width: 4px; }
+  .outerContainer::-webkit-scrollbar-track { background: transparent; }
+  .outerContainer::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+
+  #story { max-width: 560px; position: relative; }
+
+  .header { margin-bottom: 2rem; }
+  .header.invisible { display: none; }
+  .header h1 {
+    font-family: var(--font-display);
+    font-size: clamp(1.3rem, 1.9vw, 1.85rem);
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.25;
+    letter-spacing: 0.01em;
+  }
+  .header::after {
+    content: '';
+    display: block;
+    margin-top: 1.2rem;
+    height: 1px;
+    background: linear-gradient(to right, var(--divider) 0%, transparent 65%);
+  }
+
+  #story > p {
+    font-family: var(--font-body);
+    font-size: 1.1rem;
+    line-height: 1.88;
+    color: var(--text);
+    margin-bottom: 0.65rem;
+    position: relative;
+    opacity: 1;
+    transition: opacity 0.7s ease;
+  }
+  #story > p.hide { opacity: 0; }
+  #story > p:not(.choice) {
+    text-shadow: 0 0 18px rgba(140,165,210,0.12), 0 0 45px rgba(100,130,190,0.05);
+  }
+  #story > p.section-start:not(.choice)::first-letter {
+    font-family: var(--font-display);
+    font-size: 3.8em;
+    font-weight: 900;
+    float: left;
+    line-height: 0.8;
+    margin: 0.06em 0.08em -0.04em 0;
+    color: var(--text);
+    text-shadow: 0 0 25px rgba(140,165,220,0.5), 0 0 70px rgba(100,130,200,0.2);
+  }
+  #story > p strong, #story > p em { color: var(--gold); font-weight: 500; font-style: normal; }
+  #story > p.choice { display: none; }
+  #story > p.vocab-notice {
+    margin: 0.85rem 0 1rem;
+    color: var(--gold);
+    font-family: var(--font-ui);
+    font-size: 0.95rem;
+    letter-spacing: 0.01em;
+  }
+
+  /* ── RIGHT: ATMOSPHERE COLUMN ────────────────────── */
+  .atmosphere {
+    position: relative;
+    overflow: hidden;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+  }
+  .scene-wrap {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: radial-gradient(circle at top, rgba(127,164,211,0.22) 0%, rgba(38,61,99,0.5) 28%, rgba(10,17,31,0.96) 70%, rgba(5,8,15,1) 100%),
+                linear-gradient(180deg, var(--blue-top) 0%, var(--blue-mid) 38%, var(--blue-deep) 100%);
+  }
+  .scene-wrap::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to right, rgba(8,12,20,0.38) 0%, transparent 20%);
+    z-index: 2;
+    pointer-events: none;
+  }
+  .scene-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center center;
+    opacity: 0;
+    transition: opacity 1.4s ease;
+    z-index: 1;
+  }
+  .scene-img.active { opacity: 1; }
+
+  .scene-season-overlay {
+    position: absolute;
+    bottom: 44px;
+    left: 0; right: 0;
+    text-align: center;
+    font-family: var(--font-display);
+    font-size: 0.74rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(212,170,78,0.5);
+    pointer-events: none;
+    z-index: 3;
+    padding: 0 1rem;
+    transition: opacity 0.6s;
+  }
+
+  /* ── ATMOSPHERE TABS ─────────────────────────────── */
+  .atmos-tabs {
+    display: flex;
+    background: rgba(4,6,12,0.95);
+    border-top: 1px solid var(--divider);
+    flex-shrink: 0;
+    backdrop-filter: blur(4px);
+    z-index: 5;
+  }
+  .atmos-tab {
+    flex: 1;
+    padding: 0.55rem 0.3rem;
+    background: transparent;
+    border: none;
+    border-top: 2px solid transparent;
+    color: rgba(232,237,248,0.3);
+    font-family: var(--font-ui);
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .atmos-tab:hover { color: rgba(232,237,248,0.6); }
+  .atmos-tab.active { color: var(--gold); border-top-color: var(--gold-dim); }
+
+  .atmos-panel {
+    display: none;
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    bottom: 38px;
+    overflow-y: auto;
+    padding: 1.1rem 1.2rem;
+    background: rgba(5,7,9,0.97);
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.07) transparent;
+    z-index: 3;
+  }
+  .atmos-panel.active { display: block; }
+  .atmos-panel::-webkit-scrollbar { width: 4px; }
+  .atmos-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.07); border-radius: 2px; }
+
+  .ap-heading {
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(232,237,248,0.3);
+    margin-bottom: 0.9rem;
+    padding-bottom: 0.45rem;
+    border-bottom: 1px solid var(--divider);
+  }
+  .journal-entry {
+    font-family: var(--font-ui);
+    font-size: 0.9rem;
+    color: rgba(232,237,248,0.55);
+    line-height: 1.6;
+    padding: 0.5rem 0 0.5rem 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    position: relative;
+  }
+  .journal-entry::before { content: '›'; position: absolute; left: 0; color: var(--gold-dim); }
+  .journal-season-header {
+    font-family: var(--font-ui);
+    font-size: 0.62rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(212,170,78,0.65);
+    padding: 0.75rem 0 0.3rem 1rem;
+    margin-top: 0.2rem;
+    border-bottom: 1px solid rgba(212,170,78,0.1);
+    margin-bottom: 0.2rem;
+  }
+  .journal-season-header:first-child { padding-top: 0; }
+  .vocab-entry { margin-bottom: 0.9rem; padding-bottom: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
+  .vocab-entry:last-child { border-bottom: none; }
+  .vocab-term { font-family: var(--font-display); font-size: 0.85rem; font-weight: 700; color: var(--gold); margin-bottom: 0.2rem; }
+  .vocab-def  { font-family: var(--font-ui); font-size: 0.85rem; color: rgba(232,237,248,0.5); line-height: 1.55; }
+  .history-entry { margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
+  .history-entry:last-child { border-bottom: none; }
+  .history-year  { font-family: var(--font-ui); font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(212,170,78,0.7); margin-bottom: 0.18rem; font-weight: 600; }
+  .history-title { font-family: var(--font-display); font-size: 0.9rem; font-weight: 700; color: rgba(232,237,248,0.75); margin-bottom: 0.3rem; line-height: 1.3; }
+  .history-entry p { font-family: var(--font-ui); font-size: 0.84rem; color: rgba(232,237,248,0.5); line-height: 1.6; }
+
+  /* ── STATS STRIP (full-width row above choices) ──── */
+  .hud-stats-strip {
+    display: flex;
+    align-items: stretch;
+    background: linear-gradient(180deg, rgba(18,32,62,0.95) 0%, rgba(8,15,32,0.98) 100%);
+    border-top: 1px solid var(--hud-border);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    height: var(--stats-h);
+    overflow: hidden;
+  }
+
+  .stat-status-strip {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0 1rem;
+    border-right: 1px solid rgba(255,255,255,0.07);
+    min-width: 160px;
+    flex-shrink: 0;
+  }
+  .stat-status-strip .stat-label {
+    font-family: var(--font-ui);
+    font-size: 0.62rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(212,170,78,0.7);
+  }
+  .stat-status-strip .stat-value {
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 700;
+    font-style: italic;
+    color: var(--text);
+  }
+
+  .stats-cells {
+    display: flex;
+    flex: 1;
+    align-items: stretch;
+  }
+  .stat-cell {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-right: 1px solid rgba(255,255,255,0.05);
+    padding: 0.3rem 0.5rem;
+    min-width: 0;
+  }
+  .stat-cell:last-child { border-right: none; }
+  .stat-cell .stat-label {
+    font-family: var(--font-ui);
+    font-size: 0.58rem;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: rgba(212,170,78,0.65);
+    display: block;
+    margin-bottom: 2px;
+    white-space: nowrap;
+  }
+  .stat-cell .stat-value {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text);
+    display: block;
+    line-height: 1.1;
+    white-space: nowrap;
+  }
+
+  .season-strip {
+    display: flex;
+    align-items: center;
+    padding: 0 1rem;
+    border-left: 1px solid rgba(255,255,255,0.05);
+    flex-shrink: 0;
+  }
+  .season-label {
+    font-family: var(--font-display);
+    font-size: 0.82rem;
+    font-style: italic;
+    color: rgba(232,237,248,0.42);
+    white-space: nowrap;
+  }
+
+  /* ── CHOICES BAR (full width, below stats) ───────── */
+  .hud-choices-bar {
+    display: flex;
+    flex-direction: column;
+    background: var(--hud-bg);
+    overflow: hidden;
+    height: calc(var(--hud-h) - var(--stats-h));
+  }
+
+  .choices-label {
+    font-family: var(--font-ui);
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(232,237,248,0.38);
+    padding: 0.45rem 1.4rem 0.28rem;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    flex-shrink: 0;
+  }
+
+  .choices-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.3rem 0;
+    scrollbar-width: none;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+  }
+  .choices-list::-webkit-scrollbar { display: none; }
+
+  .hud-choice-item {
+    font-family: var(--font-ui);
+    font-size: 1.12rem;
+    color: rgba(232,237,248,0.88);
+    padding: 0.42rem 1.4rem;
+    cursor: pointer;
+    transition: color 0.15s, background 0.15s, padding-left 0.12s;
+    position: relative;
+    line-height: 1.35;
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    /* allow choices to sit side by side if space permits */
+    flex: 0 0 auto;
+    max-width: 50%;
+  }
+  .hud-choice-item::before {
+    content: '›';
+    color: rgba(212,170,78,0.22);
+    transition: color 0.15s;
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+  .hud-choice-item:hover {
+    color: var(--text);
+    background: rgba(255,255,255,0.04);
+    padding-left: 1.75rem;
+  }
+  .hud-choice-item:hover::before { color: var(--gold); }
+  .hud-choice-item.disabled { color: rgba(232,237,248,0.32); cursor: not-allowed; font-style: italic; }
+  .hud-choice-item.disabled::before { color: rgba(255,255,255,0.07); }
+
+  .hud-no-choices {
+    font-family: var(--font-ui);
+    font-size: 0.95rem;
+    color: rgba(232,237,248,0.38);
+    font-style: italic;
+    padding: 0.55rem 1.4rem;
+  }
+
+  @keyframes statPop { 0% { color: var(--gold); } 100% { color: var(--text); } }
+  .stat-value.popped { animation: statPop 1s ease forwards; }
+
+  /* ── RESPONSIVE: 700–999px ───────────────────────── */
+  @media (max-width: 999px) and (min-width: 700px) {
+    :root { --split: 58%; }
+    .hud-choice-item { font-size: 1.05rem; max-width: 60%; }
+    .stat-status-strip { min-width: 130px; }
+    .season-strip { display: none; }
+  }
+
+  /* ── RESPONSIVE: mobile < 700px ─────────────────── */
+  @media (max-width: 699px) {
+    :root {
+      --hud-h: 190px;
+      --stats-h: 48px;
+      --split: 100%;
+    }
+
+    /* stack: image on top, text below, full column */
+    .game-stage {
+      grid-template-columns: 1fr;
+      grid-template-rows: 42vw 1fr;
+    }
+    .game-stage::after { display: none; }
+
+    /* image panel visible on mobile — sits as a banner */
+    .atmosphere {
+      display: flex;
+      height: 100%;
+    }
+    .scene-wrap { flex: 1; }
+    .scene-img { object-fit: cover; }
+    /* hide tabs on mobile — no room, journal/vocab accessible via menu */
+    .atmos-tabs { display: none; }
+
+    .outerContainer { padding: 1.2rem 1.1rem 1rem; }
+
+    /* stats strip: collapse season label */
+    .stat-status-strip { min-width: 120px; padding: 0 0.7rem; }
+    .stat-status-strip .stat-value { font-size: 0.95rem; }
+    .season-strip { display: none; }
+    .stat-cell .stat-value { font-size: 0.92rem; }
+    .stat-cell .stat-label { font-size: 0.54rem; }
+
+    /* choices: full width, single column */
+    .hud-choice-item { max-width: 100%; font-size: 1.05rem; padding: 0.4rem 1.1rem; }
+    .choices-label { padding: 0.4rem 1.1rem 0.22rem; }
+
+    /* top bar: tighten */
+    .top-bar-byline { display: none; }
+    .top-bar-title { max-width: 55%; font-size: 0.8rem; }
+    .ctrl-btn { padding: 0.4rem 0.6rem; font-size: 0.65rem; }
+  }
+
+  /* ── VERY SMALL: < 400px ─────────────────────────── */
+  @media (max-width: 399px) {
+    :root { --hud-h: 200px; --stats-h: 44px; }
+    .game-stage { grid-template-rows: 36vw 1fr; }
+    .hud-choice-item { font-size: 1rem; }
+    .stat-cell { padding: 0.25rem 0.3rem; }
+    .stat-status-strip { min-width: 100px; }
+  }
+  /* ── STAT DELTA TICKER ─────────────────────────────
+     Appears briefly at the bottom of the text column
+     whenever stats change. Fades out after 2.5s.
+  ──────────────────────────────────────────────────── */
+  #stat-delta {
+    position: fixed;
+    left: 0;
+    width: var(--split);
+    bottom: var(--hud-h);
+    z-index: 50;
+    pointer-events: none;
+    padding: 0.5rem 1.4rem 0.6rem;
+    background: linear-gradient(to top, rgba(12,22,52,0.96) 0%, rgba(8,16,38,0.85) 60%, transparent 100%);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.75rem;
+    align-items: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  #stat-delta.visible { opacity: 1; }
+  #stat-delta.fading  { opacity: 0; transition: opacity 0.8s ease; }
+
+  .delta-item {
+    font-family: var(--font-ui);
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+  .delta-item.pos { color: rgba(130,185,255,0.85); }
+  .delta-item.neg { color: rgba(100,150,230,0.65); }
+  .delta-item.neu { color: rgba(140,165,210,0.5);  }
+
+  @media (max-width: 699px) {
+    #stat-delta {
+      width: 100%;
+      bottom: var(--hud-h);
+    }
+  }
+
+  </style>
+</head>
+<body>
+<div id="game-wrapper">
+
+  <!-- ── TOP BAR ─────────────────────────────────────── -->
+  <div class="top-bar">
+    <div class="top-bar-title">Can You Survive the World the Plague Left Behind?</div>
+    <div class="top-bar-byline" id="byline-el"></div>
+    <div class="top-bar-controls">
+      <button class="ctrl-btn" id="rewind">↺ Restart</button>
+      <button class="ctrl-btn" id="save">⊙ Save</button>
+      <button class="ctrl-btn" id="reload" disabled>⊘ Load</button>
+    </div>
+  </div>
+
+  <!-- ── GAME STAGE ────────────────────────────────── -->
+  <div class="game-stage">
+
+    <!-- LEFT: text -->
+    <div class="outerContainer">
+      <div id="story">
+        <div class="header">
+          <h1>Can You Survive the World the Plague Left Behind?</h1>
+          <h2 class="byline"></h2>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: illustration + panels -->
+    <div class="atmosphere">
+      <div class="scene-wrap" id="scene-wrap">
+
+        <!-- All scene images — start_* set (early game + special states) -->
+        <img class="scene-img active" id="scene-start-map"         alt="" fetchpriority="high" />
+        <img class="scene-img"        id="scene-start-interior"    alt="" loading="lazy" />
+        <img class="scene-img"        id="scene-grave"             alt="" loading="lazy" />
+
+        <!-- start_* exterior variants -->
+        <img class="scene-img"        id="scene-start-spring"      alt="" loading="lazy" />
+        <img class="scene-img"        id="scene-start-spring-rain" alt="" loading="lazy" />
+        <img class="scene-img"        id="scene-start-summer"      alt="" loading="lazy" />
+        <img class="scene-img"        id="scene-start-summer-rain" alt="" loading="lazy" />
+        <img class="scene-img"        id="scene-start-fall"        alt="" loading="lazy" />
+        <img class="scene-img"        id="scene-start-fall-rain"   alt="" loading="lazy" />
+        <img class="scene-img"        id="scene-start-winter"      alt="" loading="lazy" />
+        <img class="scene-img"        id="scene-start-winter-rabbit" alt="" loading="lazy" />
+        <img class="scene-img"        id="scene-start-winter-cow"  alt="" loading="lazy" />
+
+        <!-- ct_* set (Customary Tenant phase) -->
+        <img class="scene-img"        id="scene-ct-spring"         alt="" loading="lazy" />
+        <img class="scene-img"        id="scene-ct-summer"         alt="" loading="lazy" />
+        <img class="scene-img"        id="scene-ct-fall"           alt="" loading="lazy" />
+
+        <!-- l_* set (Leaseholder phase) -->
+        <img class="scene-img"        id="scene-l-spring"          alt="" loading="lazy" />
+        <img class="scene-img"        id="scene-l-summer"          alt="" loading="lazy" />
+        <img class="scene-img"        id="scene-l-summer-cow"      alt="" loading="lazy" />
+        <img class="scene-img"        id="scene-l-summer-ale"      alt="" loading="lazy" />
+        <img class="scene-img"        id="scene-l-fall"            alt="" loading="lazy" />
+        <img class="scene-img"        id="scene-l-fall-ale"        alt="" loading="lazy" />
+        <img class="scene-img"        id="scene-l-winter"          alt="" loading="lazy" />
+        <img class="scene-img"        id="scene-l-winter-cow"      alt="" loading="lazy" />
+        <img class="scene-img"        id="scene-l-winter-grain"    alt="" loading="lazy" />
+        <img class="scene-img"        id="scene-l-winter-ale"      alt="" loading="lazy" />
+        <img class="scene-img"        id="scene-l-winter-ale-grain" alt="" loading="lazy" />
+
+        <!-- cl_* set (Customary-leaseholder hybrids / late winter) -->
+        <img class="scene-img"        id="scene-cl-winter"         alt="" loading="lazy" />
+        <img class="scene-img"        id="scene-cl-winter-cow"     alt="" loading="lazy" />
+        <img class="scene-img"        id="scene-cl-winter-grain"   alt="" loading="lazy" />
+
+        <!-- season label overlay -->
+        <div class="scene-season-overlay" id="scene-season-overlay"></div>
+      </div>
+
+      <div class="atmos-tabs">
+        <button class="atmos-tab active" data-panel="scene">Scene</button>
+        <button class="atmos-tab" data-panel="journal">Journal</button>
+        <button class="atmos-tab" data-panel="vocab">Vocab</button>
+        <button class="atmos-tab" data-panel="history">History</button>
+      </div>
+
+      <div class="atmos-panel" id="panel-journal">
+        <div class="ap-heading">Your Journey</div>
+        <div id="journal-entries"><p style="font-family:var(--font-ui);font-size:0.82rem;color:rgba(223,228,240,0.22);font-style:italic;line-height:1.5;">Choices recorded as you play.</p></div>
+      </div>
+      <div class="atmos-panel" id="panel-vocab">
+        <div class="ap-heading">Medieval Terms</div>
+        <div id="vocab-list"><p style="font-family:var(--font-ui);font-size:0.82rem;color:rgba(223,228,240,0.22);font-style:italic;line-height:1.5;">Terms unlock as you progress.</p></div>
+      </div>
+      <div class="atmos-panel" id="panel-history">
+        <div class="ap-heading">Historical Context</div>
+        <div class="history-entry"><div class="history-year">1315–1322</div><div class="history-title">The Great Famine</div><p>Relentless rain rotted crops across northern Europe for seven years. Grain prices tripled. An estimated 10–25% of some regions starved — weakening bodies for what came next.</p></div>
+        <div class="history-entry"><div class="history-year">1348–1351</div><div class="history-title">The Black Death</div><p>Plague reached England via Bristol in 1348 and killed 30–60% of the population within three years. No rank offered protection.</p></div>
+        <div class="history-entry"><div class="history-year">1351</div><div class="history-title">The Statute of Labourers</div><p>Parliament tried to freeze wages at pre-plague levels. Widely ignored — but still carried real legal risk. Enforcement depended entirely on your lord.</p></div>
+        <div class="history-entry"><div class="history-year">1350s</div><div class="history-title">The Agricultural Shift</div><p>Catastrophic rainfall drove many manors from arable farming toward livestock. Sheep farming expanded dramatically in Essex. Not ideology. Survival arithmetic.</p></div>
+        <div class="history-entry"><div class="history-year">1350s–60s</div><div class="history-title">The Breakdown of Villeinage</div><p>Peasants began moving between manors for better wages. Desperate lords quietly ignored the rules. The legal fiction of serfdom was losing to the labour market.</p></div>
+        <div class="history-entry"><div class="history-year">1381</div><div class="history-title">The Peasants' Revolt</div><p>Thirty years of resentment finally boiled over. Peasants from Essex and Kent marched on London, burned legal records, briefly occupied the Tower. The revolt failed — but accelerated the legal end of serfdom.</p></div>
+        <div class="history-entry"><div class="history-year">Context</div><div class="history-title">What Reputation Meant</div><p>In a manor community, reputation determined whether the bailiff trusted you, whether neighbours loaned tools in a crisis, whether accusations would be believed in court.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STATS STRIP ──────────────────────────────── -->
+  <div class="hud-stats-strip">
+    <div class="stat-status-strip">
+      <span class="stat-label">Status</span>
+      <span class="stat-value" id="status-value">Villein</span>
+    </div>
+    <div class="stats-cells">
+      <div class="stat-cell"><span class="stat-label">Coin</span><span class="stat-value" id="money-value">—</span></div>
+      <div class="stat-cell"><span class="stat-label">Grain</span><span class="stat-value" id="grain-value">—</span></div>
+      <div class="stat-cell"><span class="stat-label">Stock</span><span class="stat-value" id="livestock-value">—</span></div>
+      <div class="stat-cell"><span class="stat-label">Health</span><span class="stat-value" id="health-value">—</span></div>
+      <div class="stat-cell"><span class="stat-label">Rep</span><span class="stat-value" id="reputation-value">—</span></div>
+    </div>
+    <div class="season-strip">
+      <span class="season-label" id="season-label">Essex, 1351</span>
+    </div>
+  </div>
+
+  <!-- ── CHOICES BAR ───────────────────────────────── -->
+  <div class="hud-choices-bar">
+    <div class="choices-label">What do you do?</div>
+    <div class="choices-list" id="hud-choices">
+      <span class="hud-no-choices">— reading —</span>
+    </div>
+  </div>
+
+</div><!-- /#game-wrapper -->
+
+  <!-- ── STAT DELTA TICKER ── -->
+  <div id="stat-delta"></div>
+
+<!-- ── IMAGE PRELOAD + SCENE CONTROLLER ─────────────── -->
+<script src="images.js"></script>
+<script>
+/*
+  SCENE CONTROLLER
+  ─────────────────
+  Single source of truth: window.sceneState
+  {
+    phase:     'start' | 'ct' | 'l' | 'cl'
+    season:    'map' | 'interior' | 'spring' | 'summer' | 'fall' | 'winter'
+    rain:      boolean
+    hasCow:    boolean
+    hasRabbit: boolean
+    hasAle:    boolean   — leaseholder has brewed/sold ale this season
+    hasGrain:  boolean   — leaseholder has stored grain
+    isDead:    boolean
+  }
+
+  Image key resolution order (most specific wins):
+    1. dead → grave
+    2. interior → start_interior  (always start_ regardless of phase)
+    3. map → start_map
+    4. phase + season + livestock/ale/grain variants
+    5. fallback: start_map
+*/
+(function () {
+  'use strict';
+
+  // ── IMAGE MAP ─────────────────────────────────────
+  // Maps every image key to its filename and element id.
+  // Add new images here; scene logic below stays clean.
+  const IMAGE_DEFS = {
+    // special
+    grave:                { file: 'Grave.webp',                  id: 'scene-grave' },
+    start_map:            { file: 'Start_Map.webp',              id: 'scene-start-map' },
+    start_interior:       { file: 'Start_Interior.webp',         id: 'scene-start-interior' },
+    // start exterior
+    start_spring:         { file: 'Start_Spring.webp',           id: 'scene-start-spring' },
+    start_spring_rain:    { file: 'Start_Spring_Rain.webp',      id: 'scene-start-spring-rain' },
+    start_summer:         { file: 'Start_Summer.webp',           id: 'scene-start-summer' },
+    start_summer_rain:    { file: 'Start_Summer_Rain.webp',      id: 'scene-start-summer-rain' },
+    start_fall:           { file: 'Start_Fall.webp',             id: 'scene-start-fall' },
+    start_fall_rain:      { file: 'Start_Fall_Rain.webp',        id: 'scene-start-fall-rain' },
+    start_winter:         { file: 'Start_Winter.webp',           id: 'scene-start-winter' },
+    start_winter_rabbit:  { file: 'Start_Winter_Rabbit.webp',    id: 'scene-start-winter-rabbit' },
+    start_winter_cow:     { file: 'Start_Winter_Cow.webp',       id: 'scene-start-winter-cow' },
+    // ct_ set
+    ct_spring:            { file: 'CT_Spring.webp',              id: 'scene-ct-spring' },
+    ct_summer:            { file: 'Ct_Cummer.webp',              id: 'scene-ct-summer' },
+    ct_fall:              { file: 'CT_Fall.webp',                id: 'scene-ct-fall' },
+    // l_ set
+    l_spring:             { file: 'L_Spring.webp',               id: 'scene-l-spring' },
+    l_summer:             { file: 'L_Summer.webp',               id: 'scene-l-summer' },
+    l_summer_cow:         { file: 'L_Summer_Cow.webp',           id: 'scene-l-summer-cow' },
+    l_summer_ale:         { file: 'L_Summer_Ale.webp',           id: 'scene-l-summer-ale' },
+    l_fall:               { file: 'L_Fall.webp',                 id: 'scene-l-fall' },
+    l_fall_ale:           { file: 'L_Fall_Ale.webp',             id: 'scene-l-fall-ale' },
+    l_winter:             { file: 'L_Winter.webp',               id: 'scene-l-winter' },
+    l_winter_cow:         { file: 'L_Winter_Cow.webp',           id: 'scene-l-winter-cow' },
+    l_winter_grain:       { file: 'L_Winter_Grain.webp',         id: 'scene-l-winter-grain' },
+    l_winter_ale:         { file: 'L_Winter_Ale.webp',           id: 'scene-l-winter-ale' },
+    l_winter_ale_grain:   { file: 'L_Winter_Ale_Grain.webp',     id: 'scene-l-winter-ale-grain' },
+    // cl_ set (files renamed to CT_)
+    cl_winter:            { file: 'CT_Winter.webp',              id: 'scene-cl-winter' },
+    cl_winter_cow:        { file: 'CT_Winter_Cow.webp',          id: 'scene-cl-winter-cow' },
+    cl_winter_grain:      { file: 'CT_Winter_Grain.webp',        id: 'scene-cl-winter-grain' },
+  };
+
+  // Wire up src for every img element
+  Object.values(IMAGE_DEFS).forEach(({ file, id }) => {
+    const el = document.getElementById(id);
+    if (el) el.src = file;
+  });
+
+  // ── STATE ─────────────────────────────────────────
+  window.sceneState = {
+    phase:     'start',   // 'start' | 'ct' | 'l' | 'cl'
+    season:    'map',     // 'map' | 'interior' | 'spring' | 'summer' | 'fall' | 'winter'
+    rain:      true,      // early game is always raining
+    hasCow:    false,
+    hasRabbit: false,
+    hasAle:    false,
+    hasGrain:  false,
+    isDead:    false,
+  };
+
+  // ── KEY RESOLVER ──────────────────────────────────
+  // Returns the image key to display given current state.
+  // 
+  // Start-phase scene flow:
+  //   map → (some days later) → start_fall_rain
+  //   → first market choices → start_winter / _cow / _rabbit
+  //   → customary tenant upgrade → start_summer (not rainy)
+  //   Never shows spring or non-rainy scenes in start phase (until CT)
+  function resolveImageKey(s) {
+    // 1. death always wins
+    if (s.isDead) return 'grave';
+
+    // 2. special non-season states
+    if (s.season === 'map')      return 'start_map';
+    if (s.season === 'interior') return 'start_interior';
+
+    const { phase, season, rain, hasCow, hasRabbit, hasAle, hasGrain } = s;
+
+    // 3. start phase — always uses start_* images
+    //    Default non-winter scene is summer (clean) once CT upgrade fires,
+    //    but during start phase everything before winter is fall_rain.
+    if (phase === 'start') {
+      if (season === 'winter') {
+        if (hasCow)    return 'start_winter_cow';
+        if (hasRabbit) return 'start_winter_rabbit';
+        return 'start_winter';
+      }
+      // In start phase: fall = rainy always (that's the mood)
+      // summer only appears briefly right before CT upgrade triggers
+      if (season === 'summer') return 'start_summer';
+      // Everything else (spring, fall, unrecognised) → fall_rain
+      return 'start_fall_rain';
+    }
+
+    // 4. ct phase (Customary Tenant)
+    if (phase === 'ct') {
+      if (season === 'winter') return 'start_winter'; // ct has no winter image; use start
+      if (season === 'fall')   return 'ct_fall';
+      if (season === 'summer') return 'ct_summer';
+      return 'ct_spring';
+    }
+
+    // 5. l phase (Leaseholder)
+    if (phase === 'l') {
+      if (season === 'winter') {
+        if (hasAle && hasGrain) return 'l_winter_ale_grain';
+        if (hasAle)             return 'l_winter_ale';
+        if (hasGrain)           return 'l_winter_grain';
+        if (hasCow)             return 'l_winter_cow';
+        return 'l_winter';
+      }
+      if (season === 'fall')   return hasAle ? 'l_fall_ale' : 'l_fall';
+      if (season === 'summer') {
+        if (hasAle) return 'l_summer_ale';
+        if (hasCow) return 'l_summer_cow';
+        return 'l_summer';
+      }
+      return 'l_spring';
+    }
+
+    // 6. cl phase (Customary-leaseholder transition)
+    if (phase === 'cl') {
+      if (season === 'winter') {
+        if (hasCow)   return 'cl_winter_cow';
+        if (hasGrain) return 'cl_winter_grain';
+        return 'cl_winter';
+      }
+      if (season === 'fall')   return 'ct_fall';
+      if (season === 'summer') return 'ct_summer';
+      return 'ct_spring';
+    }
+
+    // ultimate fallback
+    return 'start_map';
+  }
+
+  // ── SHOW IMAGE ────────────────────────────────────
+  let currentKey = null;
+
+  function showSceneByKey(key) {
+    if (key === currentKey) return; // no-op if already showing
+    const def = IMAGE_DEFS[key] || IMAGE_DEFS['start_map'];
+    document.querySelectorAll('.scene-img').forEach(el => el.classList.remove('active'));
+    const el = document.getElementById(def.id);
+    if (el) el.classList.add('active');
+    currentKey = key;
+
+    // update season overlay text
+    const overlay = document.getElementById('scene-season-overlay');
+    if (overlay) {
+      const seasonLabel = document.getElementById('season-label');
+      overlay.textContent = seasonLabel ? seasonLabel.textContent : '';
+    }
+  }
+
+  // ── PUBLIC UPDATE ─────────────────────────────────
+  window.updateScene = function () {
+    const key = resolveImageKey(window.sceneState);
+    showSceneByKey(key);
+  };
+
+  // Initial render
+  showSceneByKey('start_map');
+})();
+</script>
+
+<!-- ── PANEL TAB CONTROLLER ─────────────────────── -->
+<script>
+document.querySelectorAll('.atmos-tab').forEach(btn => {
+  btn.addEventListener('click', function () {
+    const target = this.dataset.panel;
+    document.querySelectorAll('.atmos-tab').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+    document.querySelectorAll('.atmos-panel').forEach(p => p.classList.remove('active'));
+    if (target !== 'scene') {
+      const panel = document.getElementById('panel-' + target);
+      if (panel) panel.classList.add('active');
+    }
+  });
+});
+</script>
+
+<!-- ── STAT FLASH ──────────────────────────────────── -->
+<script>
+(function () {
+  ['money-value','grain-value','livestock-value','health-value','reputation-value','status-value'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    let prev = el.textContent;
+    new MutationObserver(() => {
+      if (el.textContent !== prev) {
+        prev = el.textContent;
+        el.classList.remove('popped');
+        void el.offsetWidth;
+        el.classList.add('popped');
+      }
+    }).observe(el, { childList: true, characterData: true, subtree: true });
+  });
+})();
+</script>
+
+<script src="ink.js"></script>
+<script src="Plague.js"></script>
+<script src="main.js"></script>
+</body>
+</html>
