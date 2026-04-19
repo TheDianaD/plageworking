@@ -3,41 +3,41 @@
 // Add new images here; logic lives in the IMAGE_DEFS block in index.html.
 const SCENE_IMAGES = {
   // ── special ──────────────────────────────────────
-  start_map:            "Start_Map.webp",
-  start_interior:       "Start_Interior.webp",
-  grave:                "Grave.webp",
+  start_map:            "start_map.gif",
+  start_interior:       "start_interior.gif",
+  grave:                "grave.gif",
 
   // ── start phase (early game) ─────────────────────
-  start_spring:         "Start_Spring.webp",
-  start_spring_rain:    "Start_Spring_Rain.webp",
-  start_summer:         "Start_Summer.webp",
-  start_summer_rain:    "Start_Summer_Rain.webp",
-  start_fall:           "Start_Fall.webp",
-  start_fall_rain:      "Start_Fall_Rain.webp",
-  start_winter:         "Start_Winter.webp",
-  start_winter_rabbit:  "Start_Winter_Rabbit.webp",
-  start_winter_cow:     "Start_Winter_Cow.webp",
+  start_spring:         "start_spring.gif",
+  start_spring_rain:    "start_spring_rain.gif",
+  start_summer:         "start_summer.gif",
+  start_summer_rain:    "start_summer_rain.gif",
+  start_fall:           "start_fall.gif",
+  start_fall_rain:      "start_fall_rain.gif",
+  start_winter:         "start_winter.gif",
+  start_winter_rabbit:  "start_winter_rabbit.gof",
+  start_winter_cow:     "start_winter_cow.gif",
 
   // ── ct phase (Customary Tenant) ──────────────────
-  ct_spring:            "CT_Spring.webp",
-  ct_summer:            "Ct_Cummer.webp",   // note: file is named Ct_Cummer.webp
-  ct_fall:              "CT_Fall.webp",
+  ct_spring:            "ct_spring.gif",
+  ct_summer:            "ct_summer.gif",   // note: file is named Ct_Cummer.webp
+  ct_fall:              "ct_fall.gif",
 
   // ── l phase (Leaseholder) ────────────────────────
-  l_spring:             "L_Spring.webp",
-  l_summer:             "L_Summer.webp",
-  l_summer_cow:         "L_Summer_Cow.webp",
-  l_summer_ale:         "L_Summer_Ale.webp",
-  l_fall:               "L_Fall.webp",
-  l_fall_ale:           "L_Fall_Ale.webp",
-  l_winter:             "L_Winter.webp",
-  l_winter_cow:         "L_Winter_Cow.webp",
-  l_winter_grain:       "L_Winter_Grain.webp",
-  l_winter_ale:         "L_Winter_Ale.webp",
-  l_winter_ale_grain:   "L_Winter_Ale_Grain.webp",
+  l_spring:             "l_spring.gif",
+  l_summer:             "l_summer.gif",
+  l_summer_cow:         "l_summer_cow.gifp",
+  l_summer_ale:         "l_summer_ale.gif",
+  l_fall:               "l_fall.gif",
+  l_fall_ale:           "l_fall_ale.gif",
+  l_winter:             "l_winter.gif",
+  l_winter_cow:         "l_winter_cow.gif",
+  l_winter_grain:       "l_winter_grain.gif",
+  l_winter_ale:         "l_winter_ale.gif",
+  l_winter_ale_grain:   "l_winter_ale_grain.gif",
 
   // ── cl phase → now using CT_ filenames ───────────
-  cl_winter:            "CT_Winter.webp",
-  cl_winter_cow:        "CT_Winter_Cow.webp",
-  cl_winter_grain:      "CT_Winter_Grain.webp",
+  cl_winter:            "ct_winter.gif",
+  cl_winter_cow:        "ct_winter_cow.gif",
+  cl_winter_grain:      "ct_winter_grain.gif",
 };
